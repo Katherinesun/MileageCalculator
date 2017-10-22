@@ -528,7 +528,16 @@ class MainPage(QtWidgets.QWizardPage):
         self.setPixmap(QtWidgets.QWizard.WatermarkPixmap, QtGui.QPixmap("CASSCare.png"))
 
 
-        label = QtWidgets.QLabel("This application calculates any additional mileage load that is above 10km. To start, you can choose to run the program using default settings. Otherwise, you can choose to customise the setting.")
+        label = QtWidgets.QLabel("Here are the features of this application: \n" +
+                                 "- Calculates any additional mileage load that is above 10km \n" +
+                                 "- Updates the weekend rates for casual workers \n" +
+                                 "- Updates the internet allowance from 1.5 to 1.25 \n" +
+                                 "- Change SL to PCL \n" +
+                                 "- Add \"leave loading\" to AL \n" +
+                                 "- Add \"internet\" allowance to every staff\n\n" +
+                                 "To start, you can choose to run the program using default settings.\n" +
+                                 "Otherwise, you can choose to customise the setting.")
+
         label.setWordWrap(True)
 
         inputFile1NameLabel = QtWidgets.QLabel("Choose Your Attache Data File:")
