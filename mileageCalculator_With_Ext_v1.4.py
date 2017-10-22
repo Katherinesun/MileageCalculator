@@ -518,6 +518,7 @@ class MainPage(QtWidgets.QWizardPage):
 
         self.inf1PH = "DATA/current/input_files/attacheExport.csv"
         self.inf2PH = "DATA/current/input_files/mileageExport.csv"
+        self.inf3PH = "DATA/current/input_files/DCW_Rates.xlsx"
         self.outfPH = "DATA/current/output_file/PAYTSHT.INP"
 
         self.runMode = 0
@@ -545,6 +546,13 @@ class MainPage(QtWidgets.QWizardPage):
         inputFile2SelectionBtn = QtWidgets.QPushButton("...", parent = None)
         self.inf2PH_C = ""
 
+        inputFile3NameLabel = QtWidgets.QLabel("Choose Your DCW Rates file (.xlsx):")
+        self.inputFile3NameLineEdit = QtWidgets.QLineEdit()
+        inputFile3NameLabel.setBuddy(self.inputFile3NameLineEdit)
+
+        inputFile3SelectionBtn = QtWidgets.QPushButton("...", parent = None)
+        self.inf3PH_C = ""
+
         outputFileNameLabel = QtWidgets.QLabel("Select the folder for the Output File:")
         self.outputFileNameLineEdit = QtWidgets.QLineEdit()
         outputFileNameLabel.setBuddy(self.outputFileNameLineEdit)
@@ -557,6 +565,7 @@ class MainPage(QtWidgets.QWizardPage):
 
         self.registerField("AttacheFileName",self.inputFile1NameLineEdit)
         self.registerField("MileageFileName",self.inputFile2NameLineEdit)
+        self.registerField("DCWRatesFileName",self.inputFile3NameLineEdit)
         self.registerField("OutputFileName",self.outputFileNameLineEdit)
         self.registerField("fileArchiveFlag",archiveCheckBox)
 
@@ -571,13 +580,16 @@ class MainPage(QtWidgets.QWizardPage):
             self.runMode = 1
             self.inputFile1NameLineEdit.setEnabled(False)
             self.inputFile2NameLineEdit.setEnabled(False)
+            self.inputFile3NameLineEdit.setEnabled(False)
             self.outputFileNameLineEdit.setEnabled(False)
             archiveCheckBox.setEnabled(False)
             inputFile1SelectionBtn.setEnabled(False)
             inputFile2SelectionBtn.setEnabled(False)
+            inputFile3SelectionBtn.setEnabled(False)
             outputFileSelectionBtn.setEnabled(False)
             self.inputFile1NameLineEdit.setText(os.path.normpath(self.inf1PH))
             self.inputFile2NameLineEdit.setText(os.path.normpath(self.inf2PH))
+            self.inputFile3NameLineEdit.setText(os.path.normpath(self.inf3PH))
             self.outputFileNameLineEdit.setText(os.path.normpath(self.outfPH))
 
 
@@ -593,6 +605,7 @@ class MainPage(QtWidgets.QWizardPage):
         defaultModeRadioButton.toggled.connect(archiveCheckBox.setChecked)
         defaultModeRadioButton.toggled.connect(inputFile1SelectionBtn.setDisabled)
         defaultModeRadioButton.toggled.connect(inputFile2SelectionBtn.setDisabled)
+        defaultModeRadioButton.toggled.connect(inputFile3SelectionBtn.setDisabled)
         defaultModeRadioButton.toggled.connect(outputFileSelectionBtn.setDisabled)
         defaultModeRadioButton.toggled.connect(self.alterMode)
 
@@ -600,6 +613,7 @@ class MainPage(QtWidgets.QWizardPage):
 
         inputFile1SelectionBtn.clicked.connect(self.selectAttacheFile)
         inputFile2SelectionBtn.clicked.connect(self.selectMileageFile)
+        inputFile3SelectionBtn.clicked.connect(self.selectDCWRatesFile)
         outputFileSelectionBtn.clicked.connect(self.selectOutputDirc)
 
         self.registerField("defaultMode", defaultModeRadioButton)
@@ -613,15 +627,22 @@ class MainPage(QtWidgets.QWizardPage):
         layout = QtWidgets.QGridLayout()
         layout.addWidget(label,0,0)
         layout.addWidget(runModeBox,1,0)
+
         layout.addWidget(inputFile1NameLabel,2,0)
         layout.addWidget(self.inputFile1NameLineEdit,3,0,1,2)
         layout.addWidget(inputFile1SelectionBtn,3,3,1,1)
+
         layout.addWidget(inputFile2NameLabel,4,0)
         layout.addWidget(self.inputFile2NameLineEdit,5,0,1,2)
         layout.addWidget(inputFile2SelectionBtn,5,3,1,1)
-        layout.addWidget(outputFileNameLabel,6,0)
-        layout.addWidget(self.outputFileNameLineEdit,7,0,1,2)
-        layout.addWidget(outputFileSelectionBtn,7,3,1,1)
+
+        layout.addWidget(inputFile3NameLabel,6,0)
+        layout.addWidget(self.inputFile3NameLineEdit,7,0,1,2)
+        layout.addWidget(inputFile3SelectionBtn,7,3,1,1)
+
+        layout.addWidget(outputFileNameLabel,8,0)
+        layout.addWidget(self.outputFileNameLineEdit,9,0,1,2)
+        layout.addWidget(outputFileSelectionBtn,9,3,1,1)
         layout.addWidget(archiveCheckBox)
         self.setLayout(layout)
 
@@ -630,12 +651,14 @@ class MainPage(QtWidgets.QWizardPage):
             self.runMode = 2
             self.inputFile1NameLineEdit.clear()
             self.inputFile2NameLineEdit.clear()
+            self.inputFile3NameLineEdit.clear()
             self.outputFileNameLineEdit.clear()
             self.archive = False
         else:
             self.runMode = 1
             self.inputFile1NameLineEdit.setText(os.path.normpath(self.inf1PH))
             self.inputFile2NameLineEdit.setText(os.path.normpath(self.inf2PH))
+            self.inputFile2NameLineEdit.setText(os.path.normpath(self.inf3PH))
             self.outputFileNameLineEdit.setText(os.path.normpath(self.outfPH))
             self.archive = True
 
@@ -652,6 +675,10 @@ class MainPage(QtWidgets.QWizardPage):
     def selectMileageFile(self):
         self.inf2PH_C = QtWidgets.QFileDialog.getOpenFileName(self, 'Choose Mileage Data File..','',"Comma Separated Values File (*.csv);;All Files (*)")
         self.inputFile2NameLineEdit.setText(os.path.normpath(self.inf2PH_C[0]))
+
+    def selectDCWRatesFile(self):
+        self.inf3PH_C = QtWidgets.QFileDialog.getOpenFileName(self, 'Choose DCW Rates File..','',"Excel File (*.xlsx);;All Files (*)")
+        self.inputFile3NameLineEdit.setText(os.path.normpath(self.inf3PH_C[0]))
 
     def selectOutputDirc(self):
         self.outfPH_C = QtWidgets.QFileDialog.getExistingDirectory(self, 'Choose Saving Directory..','', QtWidgets.QFileDialog.ShowDirsOnly)
