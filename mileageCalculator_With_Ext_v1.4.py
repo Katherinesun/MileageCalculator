@@ -282,6 +282,21 @@ class myApp(QtWidgets.QWizard):
                             newDF = newDF.append(newRow, ignore_index=True)
         return newDF
 
+    """addLL - Add 'leaving load' (LL) to AL paytype"""
+    def addLL(self, df):
+        # If paytype is AL, add a new row with paytype set to LL,
+        # and the 9th column is set to 17.5% leaving load of the current rate (the 9th column of the AL row)
+        newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
+        for idx in df.index:
+            newDF = newDF.append(df.iloc[idx], ignore_index=True)
+            paytype = df.iloc[idx][5]
+            if (paytype == "AL"):
+                LL = df.iloc[idx]
+                LL[5] = LL[5].replace("AL", "LL")
+                LL[9] = LL[9] * 0.175
+                newDF = newDF.append(LL, ignore_index=True)
+        return newDF
+
     """reGenData - Regenerate Attache Data Records"""
     def reGenData(self, dfA, dfM, emCodes, emPays, extraMiles):
         newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
@@ -320,13 +335,27 @@ class myApp(QtWidgets.QWizard):
                             newDF = newDF.append(newRow, ignore_index=True)
         return newDF
 
-    """rpPayType - Replace OUTING and TRANSPORT paytype with MILEOUT and MILEIN"""
-    def rpMileout(self, df):
+    """rpPayType - Replace OUTING paytype with MILEOUT
+                   Replace TRANSPORT paytype with MILEIN
+                   Replace SL paytype with PCL
+    """
+    def rpPayType(self, df):
         dfReplaced = df.apply(lambda x: x.replace("OUTING","MILEOUT"))
         dfReplaced = dfReplaced.apply(lambda x: x.replace("MILEAGE(OUTING)","MILEOUT"))
         dfReplaced = dfReplaced.apply(lambda x: x.replace("TRANSPORT","MILEOUT"))
         dfReplaced = dfReplaced.apply(lambda x: x.replace("TRANSPORT SERVICES","MILEOUT"))
+        dfReplaced = dfReplaced.apply(lambda x: x.replace("SL","PCL"))
         return dfReplaced
+
+    """encodeStrWithAscii - Encode string columns with Ascii method"""
+    def encodeStrWithAscii(self, df):
+        df[0] = df[0].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
+        df[2] = df[2].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
+        df[4] = df[4].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
+        df[5] = df[5].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
+        df[12] = df[12].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
+        return df
+
 
     """ arcFile - Archive the source input files and generated Attache Output Data files to the default archieve folder """
     def archiveFile(self):
@@ -342,56 +371,60 @@ class myApp(QtWidgets.QWizard):
 
     """Main part of the program"""
     def runProgram(self):
+        """
+        Data Frame (DF) variables used in this function:
+        - df_main: df created from Attache input file
+        - df_main_filtered: a subset of df_main without rows for MILEINT
+        - df_mile: df created from Mileage file with empty rows being removed
+        - df_mile_filtered: a subset of df_mile with only related mileage rows and with 5% bonus calculated
+        - extraMiles: df derived from "df_mile" and "df_mile_filtered" with the additional amount of Milein needed for each worker
+        """
         """ Extract Feild Entry """
         AttacheFileName = self.mainPage.field("AttacheFileName")
         MileageFileName = self.mainPage.field("MileageFileName")
+        DCWRatesFileName = self.mainPage.field("DCWRatesFileName")
         OutputFileName = self.mainPage.field("OutputFileName")
 
         """ Check User inputs"""
         if (self.mainPage.runMode == 2):
-            if (not AttacheFileName) and (not MileageFileName) and (not OutputFileName): # Three Fields are all empty
+            # runMode = 2 means custom mode
+            if (not AttacheFileName) and (not MileageFileName) and (not DCWRatesFileName) and (not OutputFileName): # Four Fields are all empty
                 self.errorCode = 1
                 self.errorMsg()
                 sys.exit()
-            elif (self.mainPage.inputFile1NameLineEdit == ".") or (MileageFileName == ".") or (OutputFileName == "."): # One of the Field has a None string due to Cancel btn clicked
+            elif (self.mainPage.inputFile1NameLineEdit == ".") or (MileageFileName == ".") or (DCWRatesFileName == ".") or (OutputFileName == "."): # One of the Field has a None string due to Cancel btn clicked
                 self.errorCode = 2
                 self.errorMsg()
                 sys.exit()
-            elif AttacheFileName and (not MileageFileName) and (not OutputFileName): # Attache Custom File is selected, rest are empty
-                self.attacheFilePath = self.mainPage.inf1PH_C[0]
-                self.mileageFilePath = self.mainPage.inf2PH
-                self.outputFilePath = self.mainPage.outfPH
-            elif AttacheFileName and (not MileageFileName) and (OutputFileName): # Attache Custom File is selected, and Custom Output Directory is defined, rest are empty
-                self.attacheFilePath = self.mainPage.inf1PH_C[0]
-                self.mileageFilePath = self.mainPage.inf2PH
-                self.outputFilePath = self.mainPage.outfPH_C + "/PAYTSHT.INP"
-            elif AttacheFileName and (MileageFileName) and (not OutputFileName): # Attache Custom File and Mileage Custom File are selected, rest are empty
-                self.attacheFilePath = self.mainPage.inf1PH_C[0]
-                self.mileageFilePath = self.mainPage.inf2PH_C[0]
-                self.outputFilePath = self.mainPage.outfPH
-            elif (not AttacheFileName) and (MileageFileName) and (not OutputFileName): # Mileage Custom File is selected, rest are empty
-                self.attacheFilePath = self.mainPage.inf1PH
-                self.mileageFilePath = self.mainPage.inf2PH_C[0]
-                self.outputFilePath = self.mainPage.outfPH
-            elif (not AttacheFileName) and (MileageFileName) and (OutputFileName): # Mileage Custom File is selected, and Custom Output Directory is defined, rest are empty
-                self.attacheFilePath = self.mainPage.inf1PH
-                self.mileageFilePath = self.mainPage.inf2PH_C[0]
-                self.outputFilePath = self.mainPage.outfPH_C + "/PAYTSHT.INP"
-            elif (not AttacheFileName) and (not MileageFileName) and (OutputFileName): # Custom Output Directory is defined, rest are empty
-                self.attacheFilePath = self.mainPage.inf1PH
-                self.mileageFilePath = self.mainPage.inf2PH
-                self.outputFilePath = self.mainPage.outfPH_C + "/PAYTSHT.INP"
             else:
-                self.attacheFilePath = self.mainPage.inf1PH_C[0]
-                self.mileageFilePath = self.mainPage.inf2PH_C[0]
-                self.outputFilePath = self.mainPage.outfPH_C + "/PAYTSHT.INP"
+                if AttacheFileName: # Attache Custom File is selected
+                    self.attacheFilePath = self.mainPage.inf1PH_C[0]
+                else: # Attache Custom File is not selected
+                    self.attacheFilePath = self.mainPage.inf1PH
+
+                if MileageFileName: # Mileage Custom File is selected
+                    self.mileageFilePath = self.mainPage.inf2PH_C[0]
+                else: # Mileage Custom File is not selected
+                    self.mileageFilePath = self.mainPage.inf2PH
+
+                if DCWRatesFileName: # DCW Rates Custom File is selected
+                    self.DCWRatesFilePath = self.mainPage.inf3PH_C[0]
+                else: # DCW Rates Custom File is not selected
+                    self.DCWRatesFilePath = self.mainPage.inf3PH
+
+                if OutputFileName: # Custom Output Directory is defined
+                    self.outputFilePath = self.mainPage.outfPH_C + "/PAYTSHT.INP"
+                else: # Custom Output Directory is not defined
+                    self.outputFilePath = self.mainPage.outfPH
         else:
+            # assume default mode was in use
             self.attacheFilePath = self.mainPage.inf1PH
             self.mileageFilePath = self.mainPage.inf2PH
+            self.DCWRatesFilePath = self.mainPage.inf3PH
             self.outputFilePath = self.mainPage.outfPH
 
         """ Check if the existance of the input files """
-        if not(os.path.isfile(self.attacheFilePath)) or not(os.path.isfile(self.mileageFilePath)):
+        if not(os.path.isfile(self.attacheFilePath)) or not(os.path.isfile(self.mileageFilePath)) or not(os.path.isfile(self.DCWRatesFilePath)):
             self.errorCode = 6
             self.errorMsg()
             sys.exit()
@@ -454,6 +487,10 @@ class myApp(QtWidgets.QWizard):
         """ Extract Employee Salary """
         emPays = self.emPayExt(df_main, emCodes)
 
+
+        """ Load the DCW Rates into a data frame """
+        df_dcw_rates = pd.read_excel(self.DCWRatesFilePath)
+
         """ Load the mileage data into a data frame """
         df_mile_org = pd.read_csv(self.mileageFilePath, converters={"Employee Code" : str}, sep="\t")
 
@@ -463,7 +500,7 @@ class myApp(QtWidgets.QWizard):
             self.errorCode = 7
             self.errorMsg()
             sys.exit()
-        if (not(df_mile_header[0] == "Worker Name")) or (not(df_mile_header[1] == "Employee Code")) or (not(df_mile_header[2] == "Client Name")) or (not(df_mile_header[3] == "Client Cost Center")) or (not(df_mile_header[4] == "Visit Date")) or (not(df_mile_header[5] == "KMs")):
+        if df_mile_header != ["Worker Name", "Employee Code", "Client Name", "Client Cost Center", "Visit Date", "KMs"]:
             self.errorCode = 7
             self.errorMsg()
             sys.exit()
@@ -490,15 +527,14 @@ class myApp(QtWidgets.QWizard):
         """ Generate the new dataframe with additional mileage loading """
         newDF = self.reGenData(df_main_filtered, df_mile_filtered, emCodes, emPays, extraMiles)
 
+        """ Add additional leaving loading after AL paytype"""
+        newDF = self.addLL(newDF)
+
         """ Replace the Pay Type """
-        newDF = self.rpMileout(newDF)
+        newDF = self.rpPayType(newDF)
 
         """ Re-encode the string columns using ASCII method """
-        newDF[0] = newDF[0].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
-        newDF[2] = newDF[2].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
-        newDF[4] = newDF[4].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
-        newDF[5] = newDF[5].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
-        newDF[12] = newDF[12].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
+        newDF = self.encodeStrWithAscii(newDF)
 
         """ Save the updated records to a csv file """
         newDF.to_csv(self.outputFilePath,header=None,index=None,encoding="ascii",float_format='%.3f')
@@ -667,7 +703,7 @@ class MainPage(QtWidgets.QWizardPage):
             self.runMode = 1
             self.inputFile1NameLineEdit.setText(os.path.normpath(self.inf1PH))
             self.inputFile2NameLineEdit.setText(os.path.normpath(self.inf2PH))
-            self.inputFile2NameLineEdit.setText(os.path.normpath(self.inf3PH))
+            self.inputFile3NameLineEdit.setText(os.path.normpath(self.inf3PH))
             self.outputFileNameLineEdit.setText(os.path.normpath(self.outfPH))
             self.archive = True
 
