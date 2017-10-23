@@ -282,21 +282,6 @@ class myApp(QtWidgets.QWizard):
                             newDF = newDF.append(newRow, ignore_index=True)
         return newDF
 
-    """addLL - Add 'leaving load' (LL) to AL paytype"""
-    def addLL(self, df):
-        # If paytype is AL, add a new row with paytype set to LL,
-        # and the 9th column is set to 17.5% leaving load of the current rate (the 9th column of the AL row)
-        newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
-        for idx in df.index:
-            newDF = newDF.append(df.iloc[idx], ignore_index=True)
-            paytype = df.iloc[idx][5]
-            if (paytype == "AL"):
-                LL = df.iloc[idx]
-                LL[5] = LL[5].replace("AL", "LL")
-                LL[9] = LL[9] * 0.175
-                newDF = newDF.append(LL, ignore_index=True)
-        return newDF
-
     """reGenData - Regenerate Attache Data Records"""
     def reGenData(self, dfA, dfM, emCodes, emPays, extraMiles):
         newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
@@ -335,17 +320,34 @@ class myApp(QtWidgets.QWizard):
                             newDF = newDF.append(newRow, ignore_index=True)
         return newDF
 
+
+    """addLL - Add 'leaving load' (LL) to AL paytype"""
+    def addLL(self, df):
+        # If paytype is AL, add a new row with paytype set to LL,
+        # and the 9th column is set to 17.5% leaving load of the current rate (the 9th column of the AL row)
+        newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
+        for idx in df.index:
+            newDF = newDF.append(df.iloc[idx], ignore_index=True)
+            paytype = df.iloc[idx][5]
+            if (paytype == "AL"):
+                LL = df.iloc[idx]
+                LL[5] = LL[5].replace("AL", "LL")
+                LL[9] = LL[9] * 0.175
+                newDF = newDF.append(LL, ignore_index=True)
+        return newDF
+    
+
     """rpPayType - Replace OUTING paytype with MILEOUT
                    Replace TRANSPORT paytype with MILEIN
                    Replace SL paytype with PCL
     """
     def rpPayType(self, df):
-        dfReplaced = df.apply(lambda x: x.replace("OUTING","MILEOUT"))
-        dfReplaced = dfReplaced.apply(lambda x: x.replace("MILEAGE(OUTING)","MILEOUT"))
-        dfReplaced = dfReplaced.apply(lambda x: x.replace("TRANSPORT","MILEOUT"))
-        dfReplaced = dfReplaced.apply(lambda x: x.replace("TRANSPORT SERVICES","MILEOUT"))
-        dfReplaced = dfReplaced.apply(lambda x: x.replace("SL","PCL"))
-        return dfReplaced
+        df = df.apply(lambda x: x.replace("OUTING","MILEOUT"))
+        df = df.apply(lambda x: x.replace("MILEAGE(OUTING)","MILEOUT"))
+        df = df.apply(lambda x: x.replace("TRANSPORT","MILEOUT"))
+        df = df.apply(lambda x: x.replace("TRANSPORT SERVICES","MILEOUT"))
+        df = df.apply(lambda x: x.replace("SL","PCL"))
+        return df
 
     """encodeStrWithAscii - Encode string columns with Ascii method"""
     def encodeStrWithAscii(self, df):
