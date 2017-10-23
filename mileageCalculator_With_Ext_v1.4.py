@@ -330,12 +330,32 @@ class myApp(QtWidgets.QWizard):
             newDF = newDF.append(df.iloc[idx], ignore_index=True)
             paytype = df.iloc[idx][5]
             if (paytype == "AL"):
-                LL = df.iloc[idx]
+                LL = df.iloc[idx].copy()
                 LL[5] = LL[5].replace("AL", "LL")
                 LL[9] = LL[9] * 0.175
                 newDF = newDF.append(LL, ignore_index=True)
         return newDF
-    
+
+
+    """addInternetAllowance - Add INTERNET allowance to each staff"""
+    def addInternetAllowance(self, df, emCodes):
+        newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
+        for code in emCodes:
+            df_slice = df[df[2] == code]
+            newDF = newDF.append(df_slice, ignore_index=True)
+            df_ord_slice = df_slice[df_slice[5] == "ORD"]
+            if sum(df_ord_slice[6]) > 20:
+                internet_rate = 2.000
+            else:
+                internet_rate = 1.000
+            new_row = df_slice.iloc[0].copy()
+            new_row[4] = 'A'
+            new_row[5] = 'INTERNET'
+            new_row[6] = internet_rate
+            new_row[9] = 1.250
+            newDF = newDF.append(new_row, ignore_index=True)
+        return newDF
+
 
     """rpPayType - Replace OUTING paytype with MILEOUT
                    Replace TRANSPORT paytype with MILEIN
@@ -531,6 +551,9 @@ class myApp(QtWidgets.QWizard):
 
         """ Add additional leaving loading after AL paytype"""
         newDF = self.addLL(newDF)
+
+        """ Add Internet allowance for each staff"""
+        newDF = self.addInternetAllowance(newDF, emCodes)
 
         """ Replace the Pay Type """
         newDF = self.rpPayType(newDF)
