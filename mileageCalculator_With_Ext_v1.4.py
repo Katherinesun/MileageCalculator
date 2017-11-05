@@ -115,6 +115,10 @@ class myApp(QtWidgets.QWizard):
                 emCodes.append(code)
         return emCodes
 
+    """casEmCodeExt - extract employee code of casual workers from DCW Rates file"""
+    def casEmCodeExt(self, df):
+        return [str(x) for x in df[df["Employment Status"] == "C"]["Employee Code"].tolist()]
+
     """emPayExt - extract employee salary from Attache import file"""
     def emPayExt(self, df, emCodes):
         emPays = {}
@@ -336,7 +340,6 @@ class myApp(QtWidgets.QWizard):
                 newDF = newDF.append(LL, ignore_index=True)
         return newDF
 
-
     """addInternetAllowance - Add INTERNET allowance to each staff"""
     def addInternetAllowance(self, df, emCodes):
         newDF = pd.DataFrame(columns=range(0,23)) # New Data Frame for store the update records
@@ -369,6 +372,24 @@ class myApp(QtWidgets.QWizard):
         df = df.apply(lambda x: x.replace("SL","PCL"))
         return df
 
+    """updateSatCasual - Update Saturday Casual rate (multiplied by 1.4)"""
+    def updateSatCasual(self, df, casEmCodes):
+        # use "mask" to filter for Saturday casual rows
+        mask = (df[2].isin(casEmCodes)) & (df[5] == 'SAT') & (df[4] == 'A')
+        df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('SAT', 'SATCAS'))
+        df.loc[mask, 4] = df.loc[mask, 4].map(lambda x: x.replace('A', 'N'))
+        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.4)
+        return df
+
+    """updateSunCasual - Update Sunday Casual rate (multiplied by 1.6)"""
+    def updateSunCasual(self, df, casEmCodes):
+        # use "mask" to filter for Sunday casual rows
+        mask = (df[2].isin(casEmCodes)) & (df[5] == 'SUN') & (df[4] == 'A')
+        df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('SUN', 'SUNCAS'))
+        df.loc[mask, 4] = df.loc[mask, 4].map(lambda x: x.replace('A', 'N'))
+        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.6)
+        return df
+
     """encodeStrWithAscii - Encode string columns with Ascii method"""
     def encodeStrWithAscii(self, df):
         df[0] = df[0].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
@@ -382,7 +403,7 @@ class myApp(QtWidgets.QWizard):
     """ arcFile - Archive the source input files and generated Attache Output Data files to the default archieve folder """
     def archiveFile(self):
         cDate = datetime.datetime.now()
-        cDateString = str(cDate.year)+str(cDate.month)+str(cDate.day)
+        cDateString = cDate.strftime("%Y%m%d")
         self.arcDirectory = "DATA/archive/"+cDateString
         if not(os.path.isdir(self.arcDirectory)):
             os.mkdir(self.arcDirectory)
@@ -510,9 +531,6 @@ class myApp(QtWidgets.QWizard):
         emPays = self.emPayExt(df_main, emCodes)
 
 
-        """ Load the DCW Rates into a data frame """
-        df_dcw_rates = pd.read_excel(self.DCWRatesFilePath)
-
         """ Load the mileage data into a data frame """
         df_mile_org = pd.read_csv(self.mileageFilePath, converters={"Employee Code" : str}, sep="\t")
 
@@ -558,6 +576,19 @@ class myApp(QtWidgets.QWizard):
         """ Replace the Pay Type """
         newDF = self.rpPayType(newDF)
 
+
+        """ Load the DCW Rates into a data frame """
+        df_dcw_rates = pd.read_excel(self.DCWRatesFilePath)
+
+        """ Generate casual employee code lists """
+        casEmCodes = self.casEmCodeExt(df_dcw_rates)
+
+        """ Update the SAT rates for casual workers """
+        newDF = self.updateSatCasual(newDF, casEmCodes)
+
+        """ Update the SUN rates for casual workers """
+        newDF = self.updateSunCasual(newDF, casEmCodes)
+
         """ Re-encode the string columns using ASCII method """
         newDF = self.encodeStrWithAscii(newDF)
 
@@ -592,7 +623,6 @@ class MainPage(QtWidgets.QWizardPage):
         label = QtWidgets.QLabel("Here are the features of this application: \n" +
                                  "- Calculates any additional mileage load that is above 10km \n" +
                                  "- Updates the weekend rates for casual workers \n" +
-                                 "- Updates the internet allowance from 1.5 to 1.25 \n" +
                                  "- Change SL to PCL \n" +
                                  "- Add \"leave loading\" to AL \n" +
                                  "- Add \"internet\" allowance to every staff\n\n" +
