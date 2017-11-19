@@ -390,6 +390,14 @@ class myApp(QtWidgets.QWizard):
         df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.6)
         return df
 
+    """updatePhloadCasual - Update PHLOAD Casual rate (multiplied by 1.2)"""
+    def updatePhloadCasual(self, df, casEmCodes):
+        # use "mask" to filter for PHLOAD rows for casual workers
+        mask = (df[2].isin(casEmCodes)) & (df[5] == 'PHLOAD')
+        df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('PHLOAD', 'PHCAS'))
+        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.2)
+        return df
+
     """encodeStrWithAscii - Encode string columns with Ascii method"""
     def encodeStrWithAscii(self, df):
         df[0] = df[0].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
@@ -589,6 +597,9 @@ class myApp(QtWidgets.QWizard):
         """ Update the SUN rates for casual workers """
         newDF = self.updateSunCasual(newDF, casEmCodes)
 
+        """ Update the PHLOAD rates for casual workers """
+        newDF = self.updatePhloadCasual(newDF, casEmCodes)
+
         """ Re-encode the string columns using ASCII method """
         newDF = self.encodeStrWithAscii(newDF)
 
@@ -622,7 +633,7 @@ class MainPage(QtWidgets.QWizardPage):
 
         label = QtWidgets.QLabel("Here are the features of this application: \n" +
                                  "- Calculates any additional mileage load that is above 10km \n" +
-                                 "- Updates the weekend rates for casual workers \n" +
+                                 "- Updates the weekend and public holiday rates for casual workers \n" +
                                  "- Change SL to PCL \n" +
                                  "- Add \"leave loading\" to AL \n" +
                                  "- Add \"internet\" allowance to every staff\n\n" +
