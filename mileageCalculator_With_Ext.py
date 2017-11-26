@@ -202,10 +202,10 @@ class myApp(QtWidgets.QWizard):
         dfM_FF = dfM.loc[resultIndex]
         return dfM_FF
 
-    """mileBonus - give additional 5% of mileage amount to its actual travel"""
+    """mileBonus - give additional 10% of mileage amount to its actual travel"""
     def mileBonus(self, dfM):
         dfM_KMs = dfM["KMs"]
-        dfM_KMs = dfM_KMs.apply(lambda x:x*1.30)
+        dfM_KMs = dfM_KMs.apply(lambda x:x*1.10)
         dfM["KMs"] = dfM_KMs
         return dfM
 
@@ -562,7 +562,7 @@ class myApp(QtWidgets.QWizard):
         """ Remove unrelated Mileage Records """
         df_mile_filtered = self.mileRM(df_mile)
 
-        """ Calculate the bonus 5% mileage """
+        """ Calculate the bonus 10% mileage """
         df_mile_filtered = self.mileBonus(df_mile_filtered)
 
         """ Determine the additional amount of Milein needed for each worker """
