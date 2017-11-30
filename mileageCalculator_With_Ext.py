@@ -387,7 +387,7 @@ class myApp(QtWidgets.QWizard):
         mask = (df[2].isin(casEmCodes)) & (df[5] == 'SUN') & (df[4] == 'A')
         df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('SUN', 'SUNCAS'))
         df.loc[mask, 4] = df.loc[mask, 4].map(lambda x: x.replace('A', 'N'))
-        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.6)
+        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 0.6)
         return df
 
     """updatePhloadCasual - Update PHLOAD Casual rate (multiplied by 1.2)"""
