@@ -372,16 +372,16 @@ class myApp(QtWidgets.QWizard):
         df = df.apply(lambda x: x.replace("SL","PCL"))
         return df
 
-    """updateSatCasual - Update Saturday Casual rate (multiplied by 1.4)"""
+    """updateSatCasual - Update Saturday Casual rate (multiplied by 0.2)"""
     def updateSatCasual(self, df, casEmCodes):
         # use "mask" to filter for Saturday casual rows
         mask = (df[2].isin(casEmCodes)) & (df[5] == 'SAT') & (df[4] == 'A')
         df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('SAT', 'SATCAS'))
         df.loc[mask, 4] = df.loc[mask, 4].map(lambda x: x.replace('A', 'N'))
-        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.4)
+        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 0.2)
         return df
 
-    """updateSunCasual - Update Sunday Casual rate (multiplied by 1.6)"""
+    """updateSunCasual - Update Sunday Casual rate (multiplied by 0.6)"""
     def updateSunCasual(self, df, casEmCodes):
         # use "mask" to filter for Sunday casual rows
         mask = (df[2].isin(casEmCodes)) & (df[5] == 'SUN') & (df[4] == 'A')
