@@ -398,6 +398,12 @@ class myApp(QtWidgets.QWizard):
         df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.2)
         return df
 
+    """changeCol5toN - Change col 5 to 'N' if the 6th col is SAT/SUN/PHLOAD/PHNW/PHCAS"""
+    def changeCol5toN(self, df):
+        mask = df[5].isin(['SAT', 'SUN', 'PHLOAD', 'PHNW', 'PHCAS'])
+        df.loc[mask, 4] = 'N'
+        return df
+
     """encodeStrWithAscii - Encode string columns with Ascii method"""
     def encodeStrWithAscii(self, df):
         df[0] = df[0].map(lambda x: x.encode(encoding='ascii',errors='ignore').decode(encoding='ascii',errors='ignore'))
@@ -599,6 +605,9 @@ class myApp(QtWidgets.QWizard):
 
         """ Update the PHLOAD rates for casual workers """
         newDF = self.updatePhloadCasual(newDF, casEmCodes)
+
+        """ Change column 5 from A to N if the 6th col is SAT/SUN/PHLOAD/PHNW/PHCAS """
+        newDF = self.changeCol5toN(newDF)
 
         """ Re-encode the string columns using ASCII method """
         newDF = self.encodeStrWithAscii(newDF)
