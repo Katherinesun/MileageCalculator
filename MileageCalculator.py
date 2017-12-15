@@ -372,13 +372,33 @@ class myApp(QtWidgets.QWizard):
         df = df.apply(lambda x: x.replace("SL","PCL"))
         return df
 
-    """updateSatCasual - Update Saturday Casual rate (multiplied by 0.2)"""
-    def updateSatCasual(self, df, casEmCodes):
+
+    """getOrdRates - Get the ORD rate"""
+    def getOrdRates(self, df):
+        # ordRate[(employee_code, cost_center)]: ORD rate
+        ordRates = {}
+        dfA = df[df[5] == 'ORD']
+        emCodes = dfA[2].tolist()
+        cost_center = dfA[12].tolist()
+        keys = zip(emCodes, cost_center)
+        for key in keys:
+            code = key[0]
+            cc = key[1]
+            dfB = dfA[(dfA[2] == code) & (dfA[12] == cc)]
+            rate = dfB[9].tolist()[-1]
+            ordRates[code, cc] = rate
+        return ordRates
+
+
+    """updateSatCasual - Update Saturday Casual rate (ORD rate multiplied by 0.2)"""
+    def updateSatCasual(self, df, casEmCodes, ordRates):
         # use "mask" to filter for Saturday casual rows
         mask = (df[2].isin(casEmCodes)) & (df[5] == 'SAT') & (df[4] == 'A')
         df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('SAT', 'SATCAS'))
         df.loc[mask, 4] = df.loc[mask, 4].map(lambda x: x.replace('A', 'N'))
-        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 0.2)
+        for (code, cc) in ordRates:
+            newMask = mask & (df[2] == code) & (df[12] == cc)
+            df.loc[newMask, 9] = ordRates[(code, cc)] * 0.2
         return df
 
     """updateSunCasual - Update Sunday Casual rate (multiplied by 0.6)"""
@@ -390,12 +410,14 @@ class myApp(QtWidgets.QWizard):
         df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 0.6)
         return df
 
-    """updatePhloadCasual - Update PHLOAD Casual rate (multiplied by 1.2)"""
-    def updatePhloadCasual(self, df, casEmCodes):
+    """updatePhloadCasual - Update PHLOAD Casual rate (ORD rate multiplied by 1.2)"""
+    def updatePhloadCasual(self, df, casEmCodes, ordRates):
         # use "mask" to filter for PHLOAD rows for casual workers
         mask = (df[2].isin(casEmCodes)) & (df[5] == 'PHLOAD')
         df.loc[mask, 5] = df.loc[mask, 5].map(lambda x: x.replace('PHLOAD', 'PHCAS'))
-        df.loc[mask, 9] = df.loc[mask, 9].map(lambda x: x * 1.2)
+        for code, cc in ordRates:
+            newMask = mask & (df[2] == code) & (df[12] == cc)
+            df.loc[newMask, 9] = ordRates[(code, cc)] * 1.2
         return df
 
     """changeCol5toN - Change col 5 to 'N' if the 6th col is SAT/SUN/PHLOAD/PHNW/PHCAS"""
@@ -597,14 +619,17 @@ class myApp(QtWidgets.QWizard):
         """ Generate casual employee code lists """
         casEmCodes = self.casEmCodeExt(df_dcw_rates)
 
+        """ Get ORD rate """
+        ordRates = self.getOrdRates(newDF)
+
         """ Update the SAT rates for casual workers """
-        newDF = self.updateSatCasual(newDF, casEmCodes)
+        newDF = self.updateSatCasual(newDF, casEmCodes, ordRates)
 
         """ Update the SUN rates for casual workers """
         newDF = self.updateSunCasual(newDF, casEmCodes)
 
         """ Update the PHLOAD rates for casual workers """
-        newDF = self.updatePhloadCasual(newDF, casEmCodes)
+        newDF = self.updatePhloadCasual(newDF, casEmCodes, ordRates)
 
         """ Change column 5 from A to N if the 6th col is SAT/SUN/PHLOAD/PHNW/PHCAS """
         newDF = self.changeCol5toN(newDF)
